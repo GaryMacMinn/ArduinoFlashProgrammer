@@ -1,15 +1,15 @@
 /*
  * File Name:        FlashProgrammer.ino
- * Version:          V0.2
+ * Version:          V0.4
  * Created:          18 September 2017
- * Last Modified:    23 September 2017
+ * Last Modified:    1 October 2017
  * Author:           Gary MacMinn
  * Purpose:          Flash Memory Programmer
  * 
  * Notes:
- *   PORTA is data bits 0-7
- *   PORTC is address bits 0-7
- *   PORTB is address bits 8-15
+ *   PORTL is data bits 0-7
+ *   PORTA is address bits 0-7
+ *   PORTC is address bits 8-15
  */
   
 // Define high address pins 
@@ -27,7 +27,7 @@ int LedRed = 38;
 int LedGreen = 50;
 
 const int MAX_SUBSTRINGS = 3;             // Maximum number of command parts
-static char* substrings[MAX_SUBSTRINGS];  // Array of pointers to each substring after ParseString() has been called
+static char* substrings[MAX_SUBSTRINGS];  // Array of pointers to each command part after ParseString() has been called
 
 char inputBuffer[45];
 int cnt = 0;
@@ -64,21 +64,21 @@ void setup()
   digitalWrite(AD18,0);
   
   Serial.println();
-  Serial.println("Flash Memory Programmer Ver 0.2");
+  Serial.println("Flash Memory Programmer Ver 0.4");
   Serial.println("(C)2017 Gary MacMinn");
 
   // Flash the LEDs to show we're ready
   digitalWrite(LedRed,HIGH);
-  delay(750);
+  delay(500);
   digitalWrite(LedRed,LOW);
   digitalWrite(LedGreen,HIGH);
-  delay(750);
+  delay(500);
   digitalWrite(LedGreen,LOW);
   digitalWrite(LedRed,HIGH);
-  delay(750);
+  delay(500);
   digitalWrite(LedRed,LOW);
   digitalWrite(LedGreen,HIGH);
-  delay(750);
+  delay(500);
   digitalWrite(LedGreen,LOW);
 
   Serial.print("Ready> ");
@@ -88,7 +88,6 @@ void loop()
 {
   if (readline(Serial.read(), inputBuffer, 80) > 0) {
     Serial.println("");
-    Serial.println(inputBuffer);
     
     ParseString(inputBuffer);
 

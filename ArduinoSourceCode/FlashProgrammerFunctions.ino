@@ -1,8 +1,8 @@
 /*
  * File Name:        FlashProgrammerFunctions.ino
- * Version:          V0.2
+ * Version:          V0.4
  * Created:          18 September 2017
- * Last Modified:    23 September 2017
+ * Last Modified:    1 October 2017
  * Author:           Gary MacMinn
  * Purpose:          Supporting functions for the Flash Programmer
  */
@@ -10,6 +10,30 @@
 /****************************
  * Chip Operation Functions *
  ****************************/
+
+/*******************************************************
+ * FullChipErase                                       *
+ *                                                     *
+ *            +++ CAUTION - DESTRUCTIVE +++            *
+ *                                                     * 
+ * Erases the entire chip in one go. NO KIDDING!!!     * 
+ *                                                     *
+ *******************************************************/
+void FullChipErase(void)
+{
+   Serial.println("Erasing the whole chip. Please wait...");
+   
+   DoWrite(0x5555L,0xAA);       // First output byte of Sector Erase 
+   DoWrite(0x2AAAL,0x55);       // Second output byte of Sector Erase
+   DoWrite(0x5555L,0x80);       // Third output byte of Sector Erase
+   DoWrite(0x5555L,0xAA);       // Fourth output byte of Sector Erase
+   DoWrite(0x2AAAL,0x55);       // Fifth output byte of Sector Erase
+   DoWrite(0x5555L,0x10);       // Finalbyte and 0x10 Chip Erase Command
+   
+   delay(200);                  // Wait a bit for it to finish
+   
+   Serial.println("Erasure Complete.");
+}
 
 /***********************************************************
  * WriteFlash                                              *
@@ -22,8 +46,8 @@
  *                                                         * 
  * W:00000:0123456789ABCDEF0123456789ABCDEF                * 
  *                                                         * 
- * After writing, the 16 bytes are read and sent to the    *
- * Serial port.                                            *
+ * After writing, the 16 bytes are read and sent back      *
+ * to the Serial port.                                     *
  *                                                         *
  ***********************************************************/
 void WriteFlash(char* startL, char* data)
@@ -31,7 +55,7 @@ void WriteFlash(char* startL, char* data)
    unsigned long ctr;
    unsigned long WriteAddrL;
    char ReadNiblLo, ReadNiblHi;
-   char  readVal, writeVal, hexVal[3];
+   char readVal, writeVal, hexVal[3];
    
    WriteAddrL = Asc52Long(startL);
 
@@ -74,41 +98,32 @@ void WriteFlash(char* startL, char* data)
  *******************************************************/
 void SectorErase(char* Sector)
 {
-   unsigned long EraseAddrL;
-   //char Sector[3]={'\0','\0','\0'};
-   //Serial.println();
-   //Serial.println("Write to Flash");
-   //Serial.println("Sector to Write -");
-   //Serial.println("00 to 1F for SST39SF010");   
-   //Serial.println("00 to 3F for SST39SF020");   
-   //Serial.println("00 to 7F for SST39SF040");   
-   //do
-   //{
-   //   Serial.readBytesUntil(13,Sector,2);
-   //}while(Sector[0]==0);
+   unsigned long Sector2Erase = Asc22Byte(Sector) << 8;
+   Sector2Erase = Sector2Erase << 8;
    
-   Sector[0]= Sector[0] & 0x0F;
-   Sector[0]= Sector[0] <<4;
-   Sector[1]= Sector[1] - 0x30;
+//   unsigned long EraseAddrL;
+   
+//   Sector[0] = Sector[0] & 0x0F;
+//   Sector[0] = Sector[0] <<4;
+//   Sector[1] = Sector[1] - 0x30;
  
-   if (Sector[1] > 0x9)
-   {
-      Sector[1] = (Sector[1] & 0xF) + 9;
-   }
+//   if (Sector[1] > 0x9)
+//   {
+///      Sector[1] = (Sector[1] & 0xF) + 9;
+//   }
    
-   EraseAddrL = Sector[0] | Sector[1];
-   EraseAddrL = EraseAddrL << 12;
+//   EraseAddrL = Sector[0] | Sector[1];
+//   EraseAddrL = EraseAddrL << 12;
    
-   //Serial.print("Starting address = ");
+//   PrintHex5(EraseAddrL);
+   Serial.print("Erasing sector "); Serial.println(Sector2Erase,HEX);
    
-   PrintHex5(EraseAddrL);
-   Serial.println();
-   DoWrite(0x5555L,0xAA);   // First output byte of Sector Erase 
-   DoWrite(0x2AAAL,0x55);   // Second output byte of Sector Erase
-   DoWrite(0x5555L,0x80);   // Third output byte of Sector Erase
-   DoWrite(0x5555L,0xAA);   // Fourth output byte of Sector Erase
-   DoWrite(0x2AAAL,0x55);   // Fifth output byte of Sector Erase
-   DoWrite(EraseAddrL,0x30);   // Sector Address and 0x30 Sector Erase Command
+   DoWrite(0x5555L,0xAA);       // First output byte of Sector Erase 
+   DoWrite(0x2AAAL,0x55);       // Second output byte of Sector Erase
+   DoWrite(0x5555L,0x80);       // Third output byte of Sector Erase
+   DoWrite(0x5555L,0xAA);       // Fourth output byte of Sector Erase
+   DoWrite(0x2AAAL,0x55);       // Fifth output byte of Sector Erase
+   DoWrite(Sector2Erase,0x30);    // Sector Address and 0x30 Sector Erase Command
 }
 
 /*********************************************************
@@ -127,8 +142,8 @@ void ReadFlash(char* startL)
    
    ReadAddrL = Asc52Long(startL);
    
-   PrintHex5(ReadAddrL);
-   Serial.print(":");
+   PrintHex5(ReadAddrL); Serial.print(":");
+   
    for (ctr = ReadAddrL; ctr < (ReadAddrL + 0x10); ctr++)
    {
        readVal = DoRead(ctr);
@@ -174,7 +189,6 @@ void DumpFlash(char* startL, char* lengthL)
        Serial.print(ReadNiblLo,HEX);
      } 
      Serial.println();
-     //ReadAddrL+= 0x10;
    }
 }
 
@@ -187,21 +201,21 @@ void DumpFlash(char* startL, char* lengthL)
  ****************************************************/
 void DoWrite(unsigned long writeAddr, byte writeVal)
 {
-   digitalWrite(LedRed,HIGH);           // Turn the red LED on to show a write operation
+   digitalWrite(LedRed,HIGH);   // Turn the red LED on to show a write operation
    
    LoadAddr(writeAddr);
-   DDRL = 255;    // set port A as all outputs to Flash Data Lines
-   PORTL = writeVal;      // load the value to PORTA
+   DDRL = 255;                  // set port A as all outputs to Flash Data Lines
+   PORTL = writeVal;            // load the value to PORTA
 
   digitalWrite(ChipEN,LOW);     // set ChipEN and WriteEN LOW
   digitalWrite(WriteEN,LOW);
 
-  delay(1);                // let the signals settle
+  delay(1);                     // let the signals settle
 
   digitalWrite(ChipEN,HIGH);    // set ChipEN and WriteEN HIGH
   digitalWrite(WriteEN,HIGH);
 
-  digitalWrite(LedRed,LOW);           // Led off
+  digitalWrite(LedRed,LOW);     // Red Led off
 }
 
 
@@ -214,7 +228,7 @@ void DoWrite(unsigned long writeAddr, byte writeVal)
 byte DoRead(unsigned long readAddr)
 {
   byte readVal; 
-  //unsigned int PGHold;
+
   digitalWrite(LedGreen,HIGH);           // Turn the green LED on to show a read operation
   
   LoadAddr(readAddr);
@@ -232,7 +246,7 @@ byte DoRead(unsigned long readAddr)
   digitalWrite(ReadEN,HIGH);
   digitalWrite(WriteEN,HIGH);
   
-  digitalWrite(LedGreen,LOW);           // Led off
+  digitalWrite(LedGreen,LOW);           // Green Led off
   return readVal;
 }
 
@@ -327,8 +341,8 @@ void ProcessCommand(char cmd) {
       case 'D': // 'D' Dumps a section of the chip
                  DumpFlash(substrings[1],substrings[2]);
                  break;
-      case 'E': // 'E' Erase device
-                 // not implemented.
+      case 'E': // 'E' Erase Full Chip
+                 FullChipErase();
                  break;
       case 'I': // 'I' device Id
                  DeviceID();
@@ -506,7 +520,7 @@ void Help()
    Serial.println("(I)d     - read the software ID of the chip (I)");
    Serial.println("(R)ead   - Read the contents of a sector.   (R:xxxxx)");
    Serial.println("(D)ump   - Dump a block of sectors.         (D:xxxxx:yyyyy)");
-   Serial.println("(E)rase  - Erase the entire chip (not implemented yet)");
+   Serial.println("(E)rase  - Erase the entire chip.           (E)");
    Serial.println("(S)ector - erase a Sector.                  (S:xx)");
    Serial.println("(W)rite  - Write code to the flash.         (W:xxxxx:yy...yy)");
    Serial.println("(?)      - Shows this command reference");
